@@ -1,59 +1,92 @@
+/*
+  Universidad del Valle de Guatemala
+  Othello Game 
+  @author: Gus Mendez - 18500
+*/
+const NONE = "none";
+const BLACK = "black";
+const WHITE = "white";
+const DIRECTIONS = [
+	[-1, 1],
+  [-1, 0],
+  [-1, -1],
+  [1, -1],
+  [0, 1],
+	[0, -1],
+	[1, 1],
+  [1, 0]  
+];
 
-const renderLuz = ({
-    color,
-    size = 200,
-    isTurnedOn = false,
-}) => {
-    const luz = document.createElement('div');
-    luz.style.width = `${size}px`;
-    luz.style.height = `${size}px`;
-    luz.style.borderRadius = `${size / 2}px`;
-    luz.style.backgroundColor = color;
-    luz.style.opacity = isTurnedOn ? 1.0 : 0.25;
-    return luz;
+const getPlayerValueByName = name => {
+	switch (name) {
+		case BLACK:
+			return 1;
+		case WHITE:
+			return -1;	
+		default:
+			return 0;
+	}
 }
 
+const renderCell = ({ state, rowIndex, columnIndex}) => {
+	
+	const { currentPlayer, board } = state;
+	  
+  const piece = document.createElement("div");
+  //piece.id = `piece-${rowIndex}-${columnIndex}`;
+  piece.classList.toggle(NONE, true);
+	
+	piece.addEventListener("click", () => {
+    putPiece(state, rowIndex, columnIndex);
+    piece.classList.toggle("possible", false);
+	});
+	
+  piece.addEventListener("mouseover", () => {
+    if (!checkMove(state, currentPlayer, rowIndex, columnIndex)) {
+      return;
+    }
+    piece.classList.toggle("possible", true);
+    piece.classList.toggle(currentPlayer, true);
+	});
+	
+  piece.addEventListener("mouseout", () => {
+    piece.classList.toggle("possible", false);
+    if (board[rowIndex][columnIndex] !== getPlayerValueByName(currentPlayer))
+      piece.classList.toggle(currentPlayer, false);
+	});
+	
+  return piece;
+};
 
 const render = (mount, state) => {
-    const { turnedOnIndex } = state;
+  const { currentPlayer, board, mounted } = turn;
 
-    const semaforo = document.createElement('div');
-    semaforo.style.backgroundColor = 'black';
-    semaforo.style.width = '200px';
-    semaforo.style.padding = '25px';
-    [
-        'red',
-        'yellow',
-        'green'
-    ].map(
-        (color, index) => renderLuz({
-            color,
-            isTurnedOn: index === turnedOnIndex,
-        }),
-    ).forEach(
-        luz => semaforo.appendChild(luz),
-    );
-
-    const boton = document.createElement('button');
-    boton.style.width = '250px';
-    boton.style.fontSize = '20px';
-    boton.innerText = 'Siguiente';
-
-    boton.onclick = () => {
-        state.turnedOnIndex = (state.turnedOnIndex + 1) % 3;
-        root.innerHTML = '';
-        render(root, state);
-    };
-
-    mount.appendChild(semaforo);
-    mount.appendChild(boton);
+  if (!mounted) {
+    board.map((row, rowIndex) => {
+      row.map((column, columnIndex) => {
+				const piece = renderCell(rowIndex, columnIndex, state);
+				mount.appendChild(piece)
+      });
+    });
+  }
 };
-
 
 const APP_STATE = {
-    turnedOnIndex: 1,
+  currentPlayer: BLACK, 
+	mounted: false,
+	moves: 0,
+  board: [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, -1, 1, 0, 0, 0],
+    [0, 0, 0, 1, -1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ]
 };
 
-const root = document.getElementById('root');
+const root = document.getElementById("root");
 
 render(root, APP_STATE);
