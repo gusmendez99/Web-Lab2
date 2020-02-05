@@ -1,2 +1,2 @@
-# basic-webpack-setup
-Basic webpack setup to test ES6
+# Othello Game
+Simple Othello game made with JS
