@@ -177,7 +177,7 @@ const render = (mount, state) => {
 
   renderBoard();
 };
-const OTHELLO_STATE = {
+const INIT_STATE = {
   isPlayerOneTurn: true,
   board: [
     [0, 0, 0, 0, 0, 0, 0, 0],
@@ -191,4 +191,4 @@ const OTHELLO_STATE = {
   ]
 };
 const root = document.getElementById("root");
-render(root, OTHELLO_STATE);
+render(root, INIT_STATE);
