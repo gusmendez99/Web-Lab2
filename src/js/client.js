@@ -21,7 +21,17 @@ const POSSIBLE_MOVES = [
 ];
 
 const render = (mount, state) => {
+  mount.innerHTML = "";
+
   const { isPlayerOneTurn, board } = state;
+
+  const flipPiece = (rowValue, columnValue) => {
+    board[rowValue][columnValue] = isPlayerOneTurn ? 1 : -1;
+    state.board = board;
+    state.isPlayerOneTurn = !isPlayerOneTurn
+    render(mount, state);
+    
+  }
 
   const renderPiece = (rowValue, columnValue, value) => {
     const squareContainer = document.createElement("div");
@@ -59,7 +69,7 @@ const render = (mount, state) => {
     }
 
     cell.onclick = () => {
-      //console.log(cell.x + ' - ' + cell.y )
+      flipPiece(rowValue, columnValue)
     };
     squareContainer.appendChild(cell);
     return squareContainer;
@@ -99,7 +109,7 @@ const render = (mount, state) => {
     main.style.flex = 3;
     main.style.flexDirection = "column";
     main.style.justifyContent = "center";
-    main.style.alignItems = 'center'
+    main.style.alignItems = "center";
     main.style.display = "flex";
 
     const details = document.createElement("div");
@@ -142,11 +152,11 @@ const render = (mount, state) => {
     resetButton.style.fontSize = "20px";
     resetButton.style.marginTop = "20px";
     resetButton.style.fontFamily = "Montserrat";
-    resetButton.style.fontSize = '12px'
+    resetButton.style.fontSize = "12px";
     resetButton.innerText = "RESET GAME";
-    resetButton.style.border = 'none'
-    resetButton.style.outline = 'none'
-    resetButton.style.cursor = 'pointer'
+    resetButton.style.border = "none";
+    resetButton.style.outline = "none";
+    resetButton.style.cursor = "pointer";
 
     const othelloBoard = document.createElement("div");
     othelloBoard.style.backgroundColor = "#2e7d32";
@@ -154,7 +164,7 @@ const render = (mount, state) => {
     othelloBoard.style.minHeight = "420px";
     othelloBoard.style.padding = "8px";
     othelloBoard.style.flex = 1;
-    
+
     board.map((row, rowIndex) => {
       row.map((column, columnIndex) => {
         const piece = renderPiece(rowIndex, columnIndex, column);
@@ -165,14 +175,13 @@ const render = (mount, state) => {
     mount.appendChild(header);
     main.appendChild(othelloBoard);
     //main.appendChild(resetButton);
-    gameState.appendChild(subHeader)
-    gameState.appendChild(resetButton)
+    gameState.appendChild(subHeader);
+    gameState.appendChild(resetButton);
     details.appendChild(gameState);
 
     content.appendChild(main);
     content.appendChild(details);
     mount.appendChild(content);
-    
   };
 
   renderBoard();
