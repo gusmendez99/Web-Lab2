@@ -86,10 +86,10 @@ const render = (mount, state) => {
     return { canWalk: false, x: rowIndex, y: columnIndex };
   };
 
-  const hasValidMove = (playerId) => {
+  const hasValidMove = (isPlayerOneTurn) => {
     board.map((row, rowIndex) => {
       row.map((column, columnIndex) => {
-        if (checkMove(playerId, rowIndex, columnIndex)) {
+        if (checkMove(isPlayerOneTurn, rowIndex, columnIndex)) {
           return true;
         }
       });
@@ -108,7 +108,7 @@ const render = (mount, state) => {
 
   const verifyEndedGame = () => {
     /* Verifies if game has ended */
-    if ((!hasValidMove(BLACK.id) && !hasValidMove(WHITE.id)) || movesDone === 60) {
+    if ((!hasValidMove(isPlayerOneTurn) && !hasValidMove(!isPlayerOneTurn)) || movesDone === 60) {
       let currentScore = getScore();
       if (currentScore.black > currentScore.white) {
         alert("Black wins");
@@ -126,7 +126,7 @@ const render = (mount, state) => {
   const verifyOpponentHasChanceToMove = () => {
     /* Verifies if opponent has chance to move */
     const currentOpponent = isPlayerOneTurn ? WHITE.id : BLACK.id;
-    if (hasValidMove(currentOpponent)) {
+    if (hasValidMove(!isPlayerOneTurn)) {
       updateBoard();
     } else {
       console.log(
