@@ -20,32 +20,185 @@ const POSSIBLE_MOVES = [
   [1, 0]
 ];
 
-
-
 const render = (mount, state) => {
   mount.innerHTML = "";
 
-  const { isPlayerOneTurn, board } = state;
+  const { isPlayerOneTurn, board, movesDone } = state;
+
+  const checkMove = (isPlayerOneTurn, rowIndex, columnIndex) => {
+    let found = false;
+
+    if (board[rowIndex][columnIndex] !== NONE.id) {
+      return false;
+    }
+
+    POSSIBLE_MOVES.forEach(direction => {
+      const canWalk = walkPath(
+        isPlayerOneTurn,
+        rowIndex,
+        columnIndex,
+        direction[0],
+        direction[1]
+      ).canWalk;
+
+      if (canWalk) found = true;
+    });
+
+    if (found) {
+      console.log("Has move at: " + rowIndex + ", " + columnIndex);
+    }
+
+    return found;
+  };
+
+  const walkPath = (
+    isPlayerOneTurn,
+    initialRowIndex,
+    initialColunmIndex,
+    rowDirection,
+    columnDirection
+  ) => {
+    let rowIndex = initialRowIndex + rowDirection;
+    let columnIndex = initialColunmIndex + columnDirection;
+    if (
+      rowIndex > 7 ||
+      columnIndex > 7 ||
+      rowIndex < 0 ||
+      columnIndex < 0 ||
+      board[rowIndex][columnIndex] === (isPlayerOneTurn ? BLACK.id : WHITE.id)
+    ) {
+      return { canWalk: false, x: rowIndex, y: columnIndex };
+    }
+
+    for (
+      ;
+      rowIndex >= 0 &&
+      columnIndex >= 0 &&
+      rowIndex < 8 &&
+      columnIndex < 8 &&
+      board[columnIndex][rowIndex] !== NONE;
+      rowIndex += rowDirection, columnIndex += columnDirection
+    ) {
+      if (board[rowIndex][columnIndex] === (isPlayerOneTurn ? 1 : -1)) {
+        return { canWalk: true, x: rowIndex, y: columnIndex };
+      }
+    }
+    return { canWalk: false, x: rowIndex, y: columnIndex };
+  };
+
+  const hasValidMove = (playerId) => {
+    board.map((row, rowIndex) => {
+      row.map((column, columnIndex) => {
+        if (checkMove(playerId, rowIndex, columnIndex)) {
+          return true;
+        }
+      });
+    });
+
+    return false;
+  };
 
   const getScore = () => {
-    const flatBoard = flattenDeep(board)
+    const flatBoard = flattenDeep(board);
     const black = flatBoard.filter(valor => valor === BLACK.id);
     const white = flatBoard.filter(valor => valor === WHITE.id);
 
-    return { black: black.length, white: white.length};
-  }
+    return { black: black.length, white: white.length };
+  };
 
-  const flipPiece = (rowValue, columnValue) => {
-    if(board[rowValue][columnValue] !== NONE.id) {
-      return //Piece is already placed
+  const verifyEndedGame = () => {
+    /* Verifies if game has ended */
+    if ((!hasValidMove(BLACK.id) && !hasValidMove(WHITE.id)) || movesDone === 60) {
+      let currentScore = getScore();
+      if (currentScore.black > currentScore.white) {
+        alert("Black wins");
+      } else if (currentScore.black === currentScore.white) {
+        alert("Tie! Try again");
+      } else {
+        alert("White wins");
+      }
+
+      resetBoard();
+      return;
+    }
+  };
+
+  const verifyOpponentHasChanceToMove = () => {
+    /* Verifies if opponent has chance to move */
+    const currentOpponent = isPlayerOneTurn ? WHITE.id : BLACK.id;
+    if (hasValidMove(currentOpponent)) {
+      updateBoard();
+    } else {
+      console.log(
+        `Skipping ${
+          currentOpponent === BLACK.id ? WHITE.name : BLACK.name
+        }'s turn, cause doesnt have chance to move...`
+      );
+    }
+    console.log(
+      `${isPlayerOneTurn === BLACK.id ? WHITE.name : BLACK.name}'s turn`
+    );
+  };
+
+  const putPiece = (rowIndex, columnIndex) => {
+    if (board[rowIndex][columnIndex] !== NONE.id) {
+      return; //Piece already placed.
     }
 
-    board[rowValue][columnValue] = isPlayerOneTurn ? 1 : -1;
-    state.board = board;
-    state.isPlayerOneTurn = !isPlayerOneTurn
+    let found = false;
+    POSSIBLE_MOVES.forEach(direction => {
+      if (flipPieces(rowIndex, columnIndex, direction[0], direction[1])) {
+        found = true;
+      }
+    });
+
+    if (!found) {
+      return;
+    }
+
+    board[rowIndex][columnIndex] = isPlayerOneTurn ? 1 : -1;
+    updateBoard();
+
+    //Verifies ended game or opponent chance to move (after a move)
+
+    //verifyEndedGame();
+    //verifyOpponentHasChanceToMove();
+  };
+
+  const flipPieces = (
+    initialRowIndex,
+    initialColumnValue,
+    rowDirection,
+    columnDirection
+  ) => {
+    const results = walkPath(
+      isPlayerOneTurn,
+      initialRowIndex,
+      initialColumnValue,
+      rowDirection,
+      columnDirection
+    );
+    if (!results.canWalk) {
+      return false;
+    }
+
+    for (
+      let rowIndex = results.x, columnIndex = results.y;
+      rowIndex !== initialRowIndex || columnIndex !== initialColumnValue;
+      rowIndex -= rowDirection, columnIndex -= columnDirection
+    ) {
+      board[rowIndex][columnIndex] = isPlayerOneTurn ? BLACK.id : WHITE.id;
+      updateBoard(rowIndex, columnIndex);
+    }
+    return true;
+  };
+
+  const updateBoard = () => {
+    let newTurn = !isPlayerOneTurn;
+    let newMovesDone = movesDone + 1;
+    state = { newMovesDone, board, newTurn };
     render(mount, state);
-    
-  }
+  };
 
   const renderPiece = (rowValue, columnValue, value) => {
     const squareContainer = document.createElement("div");
@@ -83,8 +236,20 @@ const render = (mount, state) => {
     }
 
     cell.onclick = () => {
-      flipPiece(rowValue, columnValue)
+      putPiece(rowValue, columnValue);
     };
+
+    cell.onmouseover = () => {
+      if (!checkMove(isPlayerOneTurn, rowValue, columnValue)) {
+        return;
+      }
+    };
+
+    cell.onmouseout = () => {
+      //if (board[rowValue][columnValue] !== (isPlayerOneTurn ? BLACK.id : WHITE.id))
+      //piece.classList.toggle(currentPlayer, false);
+    };
+
     squareContainer.appendChild(cell);
     return squareContainer;
   };
@@ -172,54 +337,58 @@ const render = (mount, state) => {
     resetButton.style.outline = "none";
     resetButton.style.cursor = "pointer";
     resetButton.onclick = () => {
-      console.log('Clear board working...')
-      resetBoard()
-    }
+      console.log("Clear board working...");
+      resetBoard();
+    };
 
     // Game State
-    const currentScore = getScore(state)
+    const currentScore = getScore(state);
 
-    const scoreContainer = document.createElement('div');
-    scoreContainer.style.display = 'flex'
-    scoreContainer.style.backgroundColor = '#607d8b'
-    scoreContainer.style.color = 'white'
-    scoreContainer.style.justifyContent = 'center'
+    const scoreContainer = document.createElement("div");
+    scoreContainer.style.display = "flex";
+    scoreContainer.style.backgroundColor = "#607d8b";
+    scoreContainer.style.color = "white";
+    scoreContainer.style.justifyContent = "center";
 
-    const scoreWhite = document.createElement('h3')
+    const scoreWhite = document.createElement("h3");
     scoreWhite.style.fontFamily = "Montserrat";
-    const whiteTextScore = document.createTextNode(currentScore.white)
-    scoreWhite.appendChild(whiteTextScore)
-    scoreWhite.style.fontSize = '10px';
+    const whiteTextScore = document.createTextNode(currentScore.white);
+    scoreWhite.appendChild(whiteTextScore);
+    scoreWhite.style.fontSize = "10px";
 
-    const scoreBlack = document.createElement('h3')
+    const scoreBlack = document.createElement("h3");
     scoreBlack.style.fontFamily = "Montserrat";
-    const blackTextScore = document.createTextNode(currentScore.black)
-    scoreBlack.appendChild(blackTextScore)
-    scoreBlack.style.fontSize = '10px';
+    const blackTextScore = document.createTextNode(currentScore.black);
+    scoreBlack.appendChild(blackTextScore);
+    scoreBlack.style.fontSize = "10px";
 
-    const whiteIcon = document.createElement('div')
+    const whiteIcon = document.createElement("div");
     whiteIcon.style.backgroundColor = WHITE.name;
-    whiteIcon.style.borderRadius = '25px';
-    whiteIcon.style.height = '6px'
-    whiteIcon.style.margin = '6px'
-    whiteIcon.style.padding = '6px'
-    whiteIcon.style.width = '6px'
-    whiteIcon.style.border = `${!isPlayerOneTurn ? '2px solid yellow' : '2px solid white'}`
-    
-    const blackIcon = document.createElement('div')
-    blackIcon.style.backgroundColor = BLACK.name;
-    blackIcon.style.borderRadius = '25px';
-    blackIcon.style.height = '6px'
-    blackIcon.style.margin = '6px'
-    blackIcon.style.padding = '6px'
-    blackIcon.style.width = '6px'
-    blackIcon.style.border = `${isPlayerOneTurn ? '2px solid yellow' : '2px solid black'}` 
+    whiteIcon.style.borderRadius = "25px";
+    whiteIcon.style.height = "6px";
+    whiteIcon.style.margin = "6px";
+    whiteIcon.style.padding = "6px";
+    whiteIcon.style.width = "6px";
+    whiteIcon.style.border = `${
+      !isPlayerOneTurn ? "2px solid yellow" : "2px solid white"
+    }`;
 
-    scoreContainer.appendChild(blackIcon)
-    scoreContainer.appendChild(scoreBlack)
-    scoreContainer.appendChild(whiteIcon)
-    scoreContainer.appendChild(scoreWhite)
-    
+    const blackIcon = document.createElement("div");
+    blackIcon.style.backgroundColor = BLACK.name;
+    blackIcon.style.borderRadius = "25px";
+    blackIcon.style.height = "6px";
+    blackIcon.style.margin = "6px";
+    blackIcon.style.padding = "6px";
+    blackIcon.style.width = "6px";
+    blackIcon.style.border = `${
+      isPlayerOneTurn ? "2px solid yellow" : "2px solid black"
+    }`;
+
+    scoreContainer.appendChild(blackIcon);
+    scoreContainer.appendChild(scoreBlack);
+    scoreContainer.appendChild(whiteIcon);
+    scoreContainer.appendChild(scoreWhite);
+
     // Board
     const othelloBoard = document.createElement("div");
     othelloBoard.style.backgroundColor = "#2e7d32";
@@ -238,11 +407,10 @@ const render = (mount, state) => {
     mount.appendChild(header);
     main.appendChild(othelloBoard);
     //main.appendChild(resetButton);
-    gameState.appendChild(subHeader);    
+    gameState.appendChild(subHeader);
     gameState.appendChild(scoreContainer);
     gameState.appendChild(resetButton);
     details.appendChild(gameState);
-    
 
     content.appendChild(main);
     content.appendChild(details);
@@ -252,26 +420,26 @@ const render = (mount, state) => {
   const resetBoard = () => {
     const newData = [];
 
-    board.forEach((row) => {
+    board.forEach(row => {
       let column = [];
       row.forEach(val => column.push(NONE.id));
       newData.push(column);
     });
 
     console.log(newData);
-  
+
     newData[4][4] = newData[3][3] = BLACK.id;
     newData[4][3] = newData[3][4] = WHITE.id;
     state.board = newData;
     state.isPlayerOneTurn = true;
-    render(mount, state)
-  }
-  
+    render(mount, state);
+  };
 
   renderBoard();
 };
 const INIT_STATE = {
   isPlayerOneTurn: true,
+  movesDone: 0,
   board: [
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
