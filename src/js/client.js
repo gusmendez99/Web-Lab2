@@ -61,13 +61,13 @@ const render = (mount, state) => {
     let rowIndex = initialRowIndex + rowDirection;
     let columnIndex = initialColunmIndex + columnDirection;
     if (
-      rowIndex > 7 ||
-      columnIndex > 7 ||
       rowIndex < 0 ||
       columnIndex < 0 ||
+      rowIndex > 7 ||
+      columnIndex > 7 ||
       board[rowIndex][columnIndex] === (isPlayerOneTurn ? BLACK.id : WHITE.id)
     ) {
-      return { canWalk: false, x: rowIndex, y: columnIndex };
+      return { canWalk: false, row: rowIndex, column: columnIndex };
     }
 
     for (
@@ -76,14 +76,14 @@ const render = (mount, state) => {
       columnIndex >= 0 &&
       rowIndex < 8 &&
       columnIndex < 8 &&
-      board[columnIndex][rowIndex] !== NONE;
+      board[rowIndex][columnIndex] !== NONE.id;
       rowIndex += rowDirection, columnIndex += columnDirection
     ) {
-      if (board[rowIndex][columnIndex] === (isPlayerOneTurn ? 1 : -1)) {
-        return { canWalk: true, x: rowIndex, y: columnIndex };
+      if (board[rowIndex][columnIndex] === (isPlayerOneTurn ? BLACK.id : WHITE.id)) {
+        return { canWalk: true, row: rowIndex, column: columnIndex };
       }
     }
-    return { canWalk: false, x: rowIndex, y: columnIndex };
+    return { canWalk: false, row: rowIndex, column: columnIndex };
   };
 
   const hasValidMove = (isPlayerOneTurn) => {
@@ -108,7 +108,7 @@ const render = (mount, state) => {
 
   const verifyEndedGame = () => {
     /* Verifies if game has ended */
-    if ((!hasValidMove(isPlayerOneTurn) && !hasValidMove(!isPlayerOneTurn)) || movesDone === 60) {
+    if ((!hasValidMove(isPlayerOneTurn) && !hasValidMove(!isPlayerOneTurn)) || movesDone >= 60) {
       let currentScore = getScore();
       if (currentScore.black > currentScore.white) {
         alert("Black wins");
@@ -158,11 +158,12 @@ const render = (mount, state) => {
 
     board[rowIndex][columnIndex] = isPlayerOneTurn ? 1 : -1;
     updateBoard();
+    
 
     //Verifies ended game or opponent chance to move (after a move)
-
-    //verifyEndedGame();
-    //verifyOpponentHasChanceToMove();
+    
+    
+    
   };
 
   const flipPieces = (
@@ -183,7 +184,7 @@ const render = (mount, state) => {
     }
 
     for (
-      let rowIndex = results.x, columnIndex = results.y;
+      let rowIndex = results.row, columnIndex = results.column;
       rowIndex !== initialRowIndex || columnIndex !== initialColumnValue;
       rowIndex -= rowDirection, columnIndex -= columnDirection
     ) {
@@ -196,7 +197,7 @@ const render = (mount, state) => {
   const updateBoard = () => {
     let newTurn = !isPlayerOneTurn;
     let newMovesDone = movesDone + 1;
-    state = { newMovesDone, board, newTurn };
+    state = { movesDone: newMovesDone, board, isPlayerOneTurn: newTurn };
     render(mount, state);
   };
 
@@ -415,6 +416,9 @@ const render = (mount, state) => {
     content.appendChild(main);
     content.appendChild(details);
     mount.appendChild(content);
+
+    //verifyEndedGame();
+    //verifyOpponentHasChanceToMove();
   };
 
   const resetBoard = () => {
