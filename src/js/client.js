@@ -9,6 +9,7 @@ import flattenDeep from "lodash/flattenDeep";
 const NONE = { id: 0, name: "none" };
 const BLACK = { id: 1, name: "black" };
 const WHITE = { id: -1, name: "white" };
+const MAX_ALLOWED_MOVES = 60;
 const POSSIBLE_MOVES = [
   [-1, 1],
   [-1, 0],
@@ -25,7 +26,7 @@ const render = (mount, state) => {
 
   const { isPlayerOneTurn, board, movesDone } = state;
 
-  const checkMove = (isPlayerOneTurn, rowIndex, columnIndex) => {
+  const checkMove = (playerTurn, rowIndex, columnIndex) => {
     let found = false;
 
     if (board[rowIndex][columnIndex] !== NONE.id) {
@@ -33,8 +34,8 @@ const render = (mount, state) => {
     }
 
     POSSIBLE_MOVES.forEach(direction => {
-      const canWalk = walkPath(
-        isPlayerOneTurn,
+      const canWalk = checkWalkPath(
+        playerTurn,
         rowIndex,
         columnIndex,
         direction[0],
@@ -45,14 +46,14 @@ const render = (mount, state) => {
     });
 
     if (found) {
-      console.log("Has move at: " + rowIndex + ", " + columnIndex);
+      //console.log("Has move at: " + rowIndex + ", " + columnIndex);
     }
 
     return found;
   };
 
-  const walkPath = (
-    isPlayerOneTurn,
+  const checkWalkPath = (
+    playerTurn,
     initialRowIndex,
     initialColunmIndex,
     rowDirection,
@@ -65,7 +66,7 @@ const render = (mount, state) => {
       columnIndex < 0 ||
       rowIndex > 7 ||
       columnIndex > 7 ||
-      board[rowIndex][columnIndex] === (isPlayerOneTurn ? BLACK.id : WHITE.id)
+      board[rowIndex][columnIndex] === (playerTurn ? BLACK.id : WHITE.id)
     ) {
       return { canWalk: false, row: rowIndex, column: columnIndex };
     }
@@ -79,23 +80,25 @@ const render = (mount, state) => {
       board[rowIndex][columnIndex] !== NONE.id;
       rowIndex += rowDirection, columnIndex += columnDirection
     ) {
-      if (board[rowIndex][columnIndex] === (isPlayerOneTurn ? BLACK.id : WHITE.id)) {
+      if (board[rowIndex][columnIndex] === (playerTurn ? BLACK.id : WHITE.id)) {
         return { canWalk: true, row: rowIndex, column: columnIndex };
       }
     }
     return { canWalk: false, row: rowIndex, column: columnIndex };
   };
 
-  const hasValidMove = (isPlayerOneTurn) => {
+  const hasValidMove = (playerTurn) => {
+    let isValidMove = false;
     board.map((row, rowIndex) => {
       row.map((column, columnIndex) => {
-        if (checkMove(isPlayerOneTurn, rowIndex, columnIndex)) {
-          return true;
+        if (checkMove(playerTurn, rowIndex, columnIndex)) {
+          //console.log('It can move...')
+          isValidMove =  true;
         }
       });
     });
 
-    return false;
+    return isValidMove;
   };
 
   const getScore = () => {
@@ -106,39 +109,7 @@ const render = (mount, state) => {
     return { black: black.length, white: white.length };
   };
 
-  const verifyEndedGame = () => {
-    /* Verifies if game has ended */
-    if ((!hasValidMove(isPlayerOneTurn) && !hasValidMove(!isPlayerOneTurn)) || movesDone >= 60) {
-      let currentScore = getScore();
-      if (currentScore.black > currentScore.white) {
-        alert("Black wins");
-      } else if (currentScore.black === currentScore.white) {
-        alert("Tie! Try again");
-      } else {
-        alert("White wins");
-      }
-
-      resetBoard();
-      return;
-    }
-  };
-
-  const verifyOpponentHasChanceToMove = () => {
-    /* Verifies if opponent has chance to move */
-    const currentOpponent = isPlayerOneTurn ? WHITE.id : BLACK.id;
-    if (hasValidMove(!isPlayerOneTurn)) {
-      updateBoard();
-    } else {
-      console.log(
-        `Skipping ${
-          currentOpponent === BLACK.id ? WHITE.name : BLACK.name
-        }'s turn, cause doesnt have chance to move...`
-      );
-    }
-    console.log(
-      `${isPlayerOneTurn === BLACK.id ? WHITE.name : BLACK.name}'s turn`
-    );
-  };
+  
 
   const putPiece = (rowIndex, columnIndex) => {
     if (board[rowIndex][columnIndex] !== NONE.id) {
@@ -156,14 +127,62 @@ const render = (mount, state) => {
       return;
     }
 
-    board[rowIndex][columnIndex] = isPlayerOneTurn ? 1 : -1;
-    updateBoard();
-    
-
+    board[rowIndex][columnIndex] = isPlayerOneTurn ? BLACK.id : WHITE.id;
     //Verifies ended game or opponent chance to move (after a move)
+
+    if(verifyEndedGame()) {
+      resetBoard();
+    } else {
+      verifyOpponentHasChanceToMove();    
+      updateBoard();
+    }    
     
+  };
+
+  const verifyEndedGame = () => {
+    /* Verifies if game has ended */
+    let isGameEnded = false;
+    const currentPlayerCanMove = hasValidMove(isPlayerOneTurn)
+    const opponentCanMove = hasValidMove(!isPlayerOneTurn)
+    /* console.log(
+      `They can? ${isPlayerOneTurn ? BLACK.name : WHITE.name}: ${currentPlayerCanMove}, ` +
+      `${!isPlayerOneTurn ? BLACK.name : WHITE.name}: ${opponentCanMove}`
+    ) */
+
+    console.log(movesDone, currentPlayerCanMove, opponentCanMove)
     
-    
+    if (movesDone >= MAX_ALLOWED_MOVES - 1 || ((!currentPlayerCanMove) && (!opponentCanMove)) ) {
+      let currentScore = getScore();
+      if (currentScore.black > currentScore.white) {
+        alert("Black wins");
+      } else if (currentScore.black === currentScore.white) {
+        alert("Tie! Try again");
+      } else {
+        alert("White wins");
+      }
+
+      isGameEnded = true;
+    }
+
+    return isGameEnded
+  };
+
+  const verifyOpponentHasChanceToMove = () => {
+    /* Verifies if opponent has chance to move */
+    const currentOpponentTurn = !isPlayerOneTurn;
+    if (hasValidMove(currentOpponentTurn)) {
+      console.log('Opponent has chance to put a piece...')
+      state.isPlayerOneTurn = !isPlayerOneTurn
+    } else {
+      console.log(
+        `Skipping ${
+          currentOpponentTurn ? WHITE.id : BLACK.name
+        }'s turn, cause doesnt have chance to move...`
+      );
+    }
+    console.log(
+      `${state.isPlayerOneTurn ? BLACK.name : WHITE.name}'s turn`
+    );
   };
 
   const flipPieces = (
@@ -172,7 +191,7 @@ const render = (mount, state) => {
     rowDirection,
     columnDirection
   ) => {
-    const results = walkPath(
+    const results = checkWalkPath(
       isPlayerOneTurn,
       initialRowIndex,
       initialColumnValue,
@@ -195,10 +214,12 @@ const render = (mount, state) => {
   };
 
   const updateBoard = () => {
-    let newTurn = !isPlayerOneTurn;
+    //let newTurn = !isPlayerOneTurn; Turn already changed on verifyOpponentHasChanceToPlacePiece
     let newMovesDone = movesDone + 1;
-    state = { movesDone: newMovesDone, board, isPlayerOneTurn: newTurn };
+    state = { movesDone: newMovesDone, board: board, isPlayerOneTurn: state.isPlayerOneTurn };
+    //console.log(state)
     render(mount, state);
+    return;
   };
 
   const renderPiece = (rowValue, columnValue, value) => {
@@ -222,7 +243,7 @@ const render = (mount, state) => {
     cell.value = value;
     cell.style.borderRadius = "25px";
 
-    console.log(value);
+    //console.log(value);
 
     switch (value) {
       case BLACK.id:
@@ -244,11 +265,16 @@ const render = (mount, state) => {
       if (!checkMove(isPlayerOneTurn, rowValue, columnValue)) {
         return;
       }
+      cell.style.boxShadow = `inset 0 0 15px ${isPlayerOneTurn ? 'black' : 'white'}`;
+      cell.style.border = '1px solid white';
     };
 
     cell.onmouseout = () => {
-      //if (board[rowValue][columnValue] !== (isPlayerOneTurn ? BLACK.id : WHITE.id))
-      //piece.classList.toggle(currentPlayer, false);
+      if (checkMove(isPlayerOneTurn, rowValue, columnValue)) {
+        cell.style.boxShadow = 'none';
+        cell.style.border = "1px solid transparent";
+      }
+      
     };
 
     squareContainer.appendChild(cell);
@@ -258,7 +284,7 @@ const render = (mount, state) => {
   const renderBoard = () => {
     //Header
     const header = document.createElement("div");
-    header.style.backgroundColor = "#00796b";
+    header.style.backgroundColor = /*"#00796b"*/ 'black';
     header.style.justifyContent = "center";
     header.style.alignItems = "center";
     header.style.overflow = "auto";
@@ -323,7 +349,7 @@ const render = (mount, state) => {
     subHeader.appendChild(subHeaderTitle);
 
     const resetButton = document.createElement("button");
-    resetButton.style.backgroundColor = "#607d8b";
+    resetButton.style.backgroundColor = /*"#607d8b"*/ '#FF5252';
     resetButton.style.color = "white";
     resetButton.style.height = "fit-content";
     resetButton.style.width = "fit-content";
@@ -417,8 +443,10 @@ const render = (mount, state) => {
     content.appendChild(details);
     mount.appendChild(content);
 
-    //verifyEndedGame();
-    //verifyOpponentHasChanceToMove();
+    
+
+
+    
   };
 
   const resetBoard = () => {
@@ -430,12 +458,13 @@ const render = (mount, state) => {
       newData.push(column);
     });
 
-    console.log(newData);
+    //console.log(newData);
 
     newData[4][4] = newData[3][3] = BLACK.id;
     newData[4][3] = newData[3][4] = WHITE.id;
     state.board = newData;
     state.isPlayerOneTurn = true;
+    state.movesDone = 0;
     render(mount, state);
   };
 

@@ -1,4 +1,10 @@
 # Othello Game
 Simple Othello game made with JS
 
-![Preview](http://i.imgur.com/x3b7aDE.png)
+![Preview](https://i.imgur.com/jkhACLs.gif)
+
+### Game Todos
+
+- [x] Game done (Logic / UI)
+- [ ] Deploy game on a server
+- [ ] Play against AI
