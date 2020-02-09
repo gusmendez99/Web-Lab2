@@ -1,0 +1,3 @@
+[submodule "othelloAI"]
+	path = othelloAI
+	url = https://github.com/annleeli/othello/
