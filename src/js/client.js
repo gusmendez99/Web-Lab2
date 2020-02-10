@@ -25,7 +25,7 @@ const POSSIBLE_MOVES = [
 const render = (mount, state) => {
   mount.innerHTML = "";
 
-  const { isPlayerOneTurn, board, movesDone } = state;
+  const { isPlayerOneTurn, board, movesDone, isAIPlaying, hasAIPlacedPiece } = state;
 
   const checkMove = (playerTurn, rowIndex, columnIndex) => {
     let found = false;
@@ -134,8 +134,10 @@ const render = (mount, state) => {
     if(verifyEndedGame()) {
       resetBoard();
     } else {
-      verifyOpponentHasChanceToMove();    
-      updateBoard();
+      verifyOpponentHasChanceToMove();  
+      state.isPlayerOneTurn = !isPlayerOneTurn  
+
+      //putPiece(movesAI.action[0], movesAI.action[1], !isPlayerOneTurn);
     }    
     
   };
@@ -216,11 +218,16 @@ const render = (mount, state) => {
 
   const updateBoard = () => {
     //let newTurn = !isPlayerOneTurn; Turn already changed on verifyOpponentHasChanceToPlacePiece
-    let newMovesDone = movesDone + 1;
-    state = { movesDone: newMovesDone, board: board, isPlayerOneTurn: state.isPlayerOneTurn };
+    const newMovesDone = movesDone + 1;
+    const newState = { 
+      movesDone: newMovesDone, 
+      board: board, 
+      isPlayerOneTurn: state.isPlayerOneTurn, 
+      isAIPlaying: state.isAIPlaying,
+      hasAIPlacedPiece: state.hasAIPlacedPiece
+    };
     //console.log(state)
-    render(mount, state);
-    return;
+    render(mount, newState);
   };
 
   const renderPiece = (rowValue, columnValue, value) => {
@@ -235,57 +242,59 @@ const render = (mount, state) => {
     squareContainer.style.justifyContent = "center";
     squareContainer.style.verticalAlign = "center";
 
-    const cell = document.createElement("div");
-    cell.style.width = "42px";
-    cell.style.height = "42px";
-    cell.style.border = "1px solid white";
-    cell.rowValue = rowValue;
-    cell.columnValue = columnValue;
-    cell.value = value;
-    cell.style.borderRadius = "25px";
+    const myPiece = document.createElement("div");
+    myPiece.style.width = "42px";
+    myPiece.style.height = "42px";
+    myPiece.style.border = "1px solid white";
+    myPiece.rowValue = rowValue;
+    myPiece.columnValue = columnValue;
+    myPiece.value = value;
+    myPiece.style.borderRadius = "25px";
 
     //console.log(value);
 
     switch (value) {
       case BLACK.id:
-        cell.style.backgroundColor = BLACK.name;
+        myPiece.style.backgroundColor = BLACK.name;
         break;
       case WHITE.id:
-        cell.style.backgroundColor = WHITE.name;
+        myPiece.style.backgroundColor = WHITE.name;
         break;
       default:
-        cell.style.backgroundColor = "transparent";
-        cell.style.border = "0px";
+        myPiece.style.backgroundColor = "transparent";
+        myPiece.style.border = "0px";
     }
 
-    cell.onclick = () => {
+    myPiece.onclick = () => {
       putPiece(rowValue, columnValue);
+      state.hasAIPlacedPiece = false;
+      updateBoard();
     };
 
-    cell.onmouseover = () => {
+    myPiece.onmouseover = () => {
       if (!checkMove(isPlayerOneTurn, rowValue, columnValue)) {
         return;
       }
-      cell.style.boxShadow = `inset 0 0 15px ${isPlayerOneTurn ? 'black' : 'white'}`;
-      cell.style.border = '1px solid white';
+      myPiece.style.boxShadow = `inset 0 0 15px ${isPlayerOneTurn ? 'black' : 'white'}`;
+      myPiece.style.border = '1px solid white';
     };
 
-    cell.onmouseout = () => {
+    myPiece.onmouseout = () => {
       if (checkMove(isPlayerOneTurn, rowValue, columnValue)) {
-        cell.style.boxShadow = 'none';
-        cell.style.border = "1px solid transparent";
+        myPiece.style.boxShadow = 'none';
+        myPiece.style.border = "1px solid transparent";
       }
       
     };
 
-    squareContainer.appendChild(cell);
+    squareContainer.appendChild(myPiece);
     return squareContainer;
   };
 
   const renderBoard = () => {
     //Header
     const header = document.createElement("div");
-    header.style.backgroundColor = /*"#00796b"*/ 'black';
+    header.style.backgroundColor = 'black';
     header.style.justifyContent = "center";
     header.style.alignItems = "center";
     header.style.overflow = "auto";
@@ -329,6 +338,8 @@ const render = (mount, state) => {
     const gameState = document.createElement("div");
     gameState.style.backgroundColor = "whitesmoke";
     gameState.style.flex = 1;
+    gameState.style.display = "flex";
+    gameState.style.flexDirection = "column"
 
     ///Sub Header
     const subHeader = document.createElement("div");
@@ -367,6 +378,31 @@ const render = (mount, state) => {
     resetButton.onclick = () => {
       console.log("Clear board working...");
       resetBoard();
+    };
+
+    const playAIContainer = document.createElement("div");
+    playAIContainer.style.display = "inline"
+    playAIContainer.style.height = "fit-content";
+    playAIContainer.style.width = "fit-content";
+
+    const playAITitle = document.createElement("h4");
+    const playAITitleText = document.createTextNode("White is AI?");
+    playAITitle.appendChild(playAITitleText);
+    playAITitle.style.color = "black";
+    playAITitle.style.fontSize = "12px";
+
+    const playAICheckBox = document.createElement("input");
+    playAICheckBox.type = 'checkbox'
+    playAICheckBox.style.height = "fit-content";
+    playAICheckBox.style.width = "fit-content";
+    playAICheckBox.style.marginTop = "4px";
+    playAICheckBox.checked = isAIPlaying;
+    playAICheckBox.onclick = () => {
+
+      console.log("Playing against AI...");
+      state.isAIPlaying = !isAIPlaying;
+      updateBoard()
+      //resetBoard();
     };
 
     // Game State
@@ -437,12 +473,27 @@ const render = (mount, state) => {
     //main.appendChild(resetButton);
     gameState.appendChild(subHeader);
     gameState.appendChild(scoreContainer);
+    playAIContainer.appendChild(playAITitle)
+    playAIContainer.appendChild(playAICheckBox)
+    gameState.appendChild(playAIContainer)
     gameState.appendChild(resetButton);
     details.appendChild(gameState);
 
     content.appendChild(main);
     content.appendChild(details);
     mount.appendChild(content);
+
+    console.log(state)
+
+    if(isAIPlaying && !isPlayerOneTurn && !hasAIPlacedPiece) {
+      console.log("AI pondra su jugadinha...");
+      const movesAI = simpleMinimax(board, false);
+      console.log(movesAI);
+      state.hasAIPlacedPiece = true;
+      putPiece(movesAI.action[0], movesAI.action[1])
+      updateBoard()
+    }
+    
 
   };
 
@@ -462,14 +513,10 @@ const render = (mount, state) => {
     state.board = newData;
     state.isPlayerOneTurn = true;
     state.movesDone = 0;
+    state.isAIPlaying = false;
     render(mount, state);
 
-    /*if(!isPlayerOneTurn) {
-      console.log("AI pondra su jugadinha...");
-      const movesAI = simpleMinimax(board, !isPlayerOneTurn);
-      console.log(movesAI);
-      putPiece(movesAI.action[0], movesAI.action[1], !isPlayerOneTurn);
-    }*/
+    
 
   };
 
@@ -478,6 +525,8 @@ const render = (mount, state) => {
 const INIT_STATE = {
   isPlayerOneTurn: true,
   movesDone: 0,
+  isAIPlaying: false,
+  hasAIPlacedPiece: false,
   board: [
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
