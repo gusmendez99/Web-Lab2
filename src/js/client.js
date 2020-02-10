@@ -5,6 +5,7 @@
 */
 
 import flattenDeep from "lodash/flattenDeep";
+import simpleMinimax from "../../othelloAI/ai_strategies";
 
 const NONE = { id: 0, name: "none" };
 const BLACK = { id: 1, name: "black" };
@@ -443,10 +444,6 @@ const render = (mount, state) => {
     content.appendChild(details);
     mount.appendChild(content);
 
-    
-
-
-    
   };
 
   const resetBoard = () => {
@@ -466,6 +463,14 @@ const render = (mount, state) => {
     state.isPlayerOneTurn = true;
     state.movesDone = 0;
     render(mount, state);
+
+    /*if(!isPlayerOneTurn) {
+      console.log("AI pondra su jugadinha...");
+      const movesAI = simpleMinimax(board, !isPlayerOneTurn);
+      console.log(movesAI);
+      putPiece(movesAI.action[0], movesAI.action[1], !isPlayerOneTurn);
+    }*/
+
   };
 
   renderBoard();
