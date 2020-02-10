@@ -11,6 +11,9 @@ Simple Othello game made with JS
 ![Preview](https://i.imgur.com/jkhACLs.gif)
 
 ### Game Black against White (AI)
+If checkbox is selected, you can play against an AI as shown below
 
-![Preview](https://i.imgur.com/VM930TT.gif)
+![Preview](https://i.imgur.com/SMvTHJt.gif)
+
+
 
